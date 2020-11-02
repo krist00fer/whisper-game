@@ -14,9 +14,10 @@ type Post struct {
 func PostsHandler(w http.ResponseWriter, r *http.Request) {
 
 	posts := []Post{
-		Post{"Post one", "Kristofer", "This is first post."},
-		Post{"Post two", "Jane", "This is second post."},
-		Post{"Post three", "John", "This is another post."},
+		Post{"Post one", "Paige", "This is first post."},
+		Post{"Post two", "Rachel", "This is second post."},
+		Post{"Post three", "Olivia", "This is another post."},
+		Post{"Post four", "Kristofer", "This is the last post."},
 	}
 
 	json.NewEncoder(w).Encode(posts)
