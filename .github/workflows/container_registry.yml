@@ -13,7 +13,8 @@ jobs:
           registry: krist00fer.azurecr.io
           username: ${{secrets.REGISTRY_USERNAME}}
           password: ${{secrets.REGISTRY_PASSWORD}}
-
+      - name: Test
+        run: echo "Kristofer was here"
     
           
       - name: Image digest
