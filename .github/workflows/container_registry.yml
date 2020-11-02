@@ -12,10 +12,9 @@ jobs:
         with:
           registry: krist00fer.azurecr.io
           username: ${{secrets.REGISTRY_USERNAME}}
-          password: ${{secrets.REGISTRY_PASSWORD}}
-      - name: Test
-        run: echo "Kristofer was here"
-    
-          
+          password: ${{secrets.REGISTRY_PASSWORD}}    
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
       - name: Image digest
         run: echo @{{ steps.docker_build.outputs.digest }}
