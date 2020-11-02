@@ -23,10 +23,10 @@ jobs:
         id: docker_build
         uses: docker/build-push-action@v2
         with:
-          context: ./
+          context: .
           file: ./Dockerfile
           push: true
-          tags: krist00fer.azurecr.io/whisper:latest
+          tags: krist00fer/whisper:latest
       
       - name: Image digest
         run: echo @{{ steps.docker_build.outputs.digest }}
