@@ -12,7 +12,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const version = "0.0.3"
+const version = "0.0.4"
 
 var sender string
 
@@ -63,6 +63,7 @@ func handleGetVersion(w http.ResponseWriter, r *http.Request) {
 func handleGetConfig(w http.ResponseWriter, r *http.Request) {
 	log.Println("Config Requested")
 	fmt.Fprintln(w, "Whisper Service - Configuration")
+	fmt.Fprintln(w, "------------------------------------")
 	fmt.Fprintln(w, "Version:", version)
 	fmt.Fprintln(w, "Sender :", sender)
 }
