@@ -24,6 +24,14 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	http.HandleFunc("")
 	http.HandleFunc("/posts", PostsHandler)
 	http.ListenAndServe(":5051", nil)
 }
+
+/*
+	{
+		"sender":"olivia",
+		"message":"Fun message"
+	}
+*/
