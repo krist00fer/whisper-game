@@ -36,8 +36,13 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(posts)
 }
 
-func newMessagePosted(w http.ResponseWriter, r *http.Request) {
-	log.Println("Message received")
+func handleGetVersion(w http.ResponseWriter, r *http.Request) {
+	log.Println("Version Requested")
+	fmt.Fprintf(w, "0.0.1")
+}
+
+func handlePostMessage(w http.ResponseWriter, r *http.Request) {
+	log.Println("Message Received")
 	reqBody, _ := ioutil.ReadAll(r.Body)
 
 	var whisper Whisper
@@ -52,7 +57,8 @@ func handleRequests() {
 	router := mux.NewRouter().StrictSlash(true)
 
 	router.HandleFunc("/posts", PostsHandler)
-	router.HandleFunc("/", newMessagePosted).Methods("POST")
+	router.HandleFunc("/version", handleGetVersion)
+	router.HandleFunc("/", handlePostMessage).Methods("POST")
 
 	log.Println("Listening to requests on port 5051")
 	log.Fatal(http.ListenAndServe(":5051", router))
