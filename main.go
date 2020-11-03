@@ -101,9 +101,19 @@ func handleGetGossip(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Latest Gossip")
 	fmt.Fprintln(w, "----------------------------------------------------------------------------------------------------")
 	for i, g := range gossip {
-		fmt.Fprintf(w, "%d) \"%s\" -%s\n", i, g.Message, g.Sender)
+		fmt.Fprintf(w, "%d) \"%s\" -%s", i, g.Message, g.Sender)
+
+		if g.Sender == sender {
+			fmt.Fprintln(w, " *)")
+		} else {
+			fmt.Fprintln(w)
+		}
 	}
 	fmt.Fprintln(w)
+	fmt.Fprintln(w, "----------------------------------------------------------------------------------------------------")
+	fmt.Fprintln(w, "*) Message has closed the loop and came back")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "JSON:")
 
 	json.NewEncoder(w).Encode(gossip)
 }
