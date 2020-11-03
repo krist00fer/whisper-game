@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const version = "0.0.6"
+const version = "0.1.0"
 
 var sender string
 var forwardAddress string
@@ -46,16 +46,17 @@ func main() {
 func setupAndHandleRequests() {
 	router := mux.NewRouter().StrictSlash(true)
 
-	router.HandleFunc("/config", handleGetConfig)
+	router.HandleFunc("/config", handleGetConfig).Methods("GET")
 	router.HandleFunc("/whisper", handlePostMessage).Methods("POST")
-	router.HandleFunc("/gossip", handleGetGossip)
+	router.HandleFunc("/gossip", handleGetGossip).Methods("GET")
+	router.HandleFunc("/gossip", handlePostGossip).Methods("POST")
 
 	log.Println("Listening to requests on port 5051")
 	log.Fatal(http.ListenAndServe(":5051", router))
 }
 
 func handlePostMessage(w http.ResponseWriter, r *http.Request) {
-	log.Println("Message Received")
+	log.Println("HTTP/POST /whisper - Whisper Received")
 	reqBody, _ := ioutil.ReadAll(r.Body)
 
 	var whisper Whisper
@@ -75,7 +76,7 @@ func handlePostMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGetConfig(w http.ResponseWriter, r *http.Request) {
-	log.Println("Config Requested")
+	log.Println("HTTP/GET /config - Config Requested")
 	fmt.Fprintln(w, "Whisper Service - Configuration")
 	fmt.Fprintln(w, "----------------------------------------------------------------------------------------------------")
 	fmt.Fprintln(w, "Version         :", version)
@@ -84,19 +85,37 @@ func handleGetConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGetGossip(w http.ResponseWriter, r *http.Request) {
-	log.Println("Gossig Requested")
+	log.Println("HTTP/GET /gossip - Gossip Requested")
 
 	json.NewEncoder(w).Encode(gossip)
 }
 
+func handlePostGossip(w http.ResponseWriter, r *http.Request) {
+	log.Println("HTTP/POST /gossip - Gossip Started")
+
+	reqBody, _ := ioutil.ReadAll(r.Body)
+
+	var whisper Whisper
+	json.Unmarshal(reqBody, &whisper)
+	log.Println("New Gossip - From:", whisper.Sender, "Message:", whisper.Message)
+
+	if whisper.Sender != sender {
+		w.WriteHeader(http.StatusNotAcceptable)
+		log.Println("You can only start gossip as the sender/owner of the service")
+	} else {
+		sendWhisper(whisper)
+	}
+
+}
+
 func sendWhisper(w Whisper) {
-	log.Println("Forwarding whisper to", forwardAddress)
+	log.Println("Sending whisper to", forwardAddress)
 
 	jsonReq, _ := json.Marshal(w)
 	resp, err := http.Post(forwardAddress, "application/json; charset=utf-8", bytes.NewBuffer(jsonReq))
 	if err != nil {
-		log.Fatalln("Unable to forward whisper to", forwardAddress)
-		log.Fatalln(err)
+		log.Println("Unable to forward whisper to", forwardAddress)
+		log.Println(err)
 	}
 
 	defer resp.Body.Close()
