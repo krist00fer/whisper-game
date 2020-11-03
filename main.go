@@ -12,12 +12,14 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const version = "0.0.4"
+const version = "0.0.5"
 
 var sender string
+var forwardAddress string
 
 func main() {
 	flag.StringVar(&sender, "sender", "N/A", "Set the current sender")
+	flag.StringVar(&forwardAddress, "forwardAddress", "N/A", "Address to foward whispers to")
 	flag.Parse()
 
 	val, present := os.LookupEnv("WHISPER_SENDER")
@@ -25,8 +27,14 @@ func main() {
 		sender = val
 	}
 
+	val, present = os.LookupEnv("WHISPER_FORWARD_ADDRESS")
+	if forwardAddress == "N/A" && present {
+		forwardAddress = val
+	}
+
 	log.Println("Whisper Service (version:", version, ") - Started")
 	log.Println("Sender:", sender)
+	log.Println("Forward Address:", forwardAddress)
 
 	setupAndHandleRequests()
 }
@@ -35,7 +43,6 @@ func setupAndHandleRequests() {
 	router := mux.NewRouter().StrictSlash(true)
 
 	router.HandleFunc("/posts", PostsHandler)
-	router.HandleFunc("/version", handleGetVersion)
 	router.HandleFunc("/config", handleGetConfig)
 	router.HandleFunc("/", handlePostMessage).Methods("POST")
 
@@ -55,17 +62,13 @@ func handlePostMessage(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%+v", string(reqBody))
 }
 
-func handleGetVersion(w http.ResponseWriter, r *http.Request) {
-	log.Println("Version Requested")
-	fmt.Fprintln(w, version)
-}
-
 func handleGetConfig(w http.ResponseWriter, r *http.Request) {
 	log.Println("Config Requested")
 	fmt.Fprintln(w, "Whisper Service - Configuration")
-	fmt.Fprintln(w, "------------------------------------")
-	fmt.Fprintln(w, "Version:", version)
-	fmt.Fprintln(w, "Sender :", sender)
+	fmt.Fprintln(w, "----------------------------------------------------------------------------------------------------")
+	fmt.Fprintln(w, "Version         :", version)
+	fmt.Fprintln(w, "Sender          :", sender)
+	fmt.Fprintln(w, "Forward Address :", forwardAddress)
 }
 
 // To be removed
