@@ -25,6 +25,7 @@ var gossip []Whisper
 func main() {
 	flag.StringVar(&sender, "sender", "N/A", "Set the current sender")
 	flag.StringVar(&forwardAddress, "forwardAddress", "N/A", "Address to foward whispers to")
+	//flag.StringVar(&validSenders)
 	flag.Parse()
 
 	val, present := os.LookupEnv("WHISPER_SENDER")
@@ -51,7 +52,7 @@ func setupAndHandleRequests() {
 	router := mux.NewRouter().StrictSlash(true)
 
 	router.HandleFunc("/config", handleGetConfig).Methods("GET")
-	router.HandleFunc("/whisper", handlePostMessage).Methods("POST")
+	router.HandleFunc("/whisper", handlePostWhisper).Methods("POST")
 	router.HandleFunc("/gossip", handleGetGossip).Methods("GET")
 	router.HandleFunc("/gossip", handlePostGossip).Methods("POST")
 
@@ -59,7 +60,7 @@ func setupAndHandleRequests() {
 	log.Fatal(http.ListenAndServe(":5051", router))
 }
 
-func handlePostMessage(w http.ResponseWriter, r *http.Request) {
+func handlePostWhisper(w http.ResponseWriter, r *http.Request) {
 	log.Println("HTTP/POST /whisper - Whisper Received")
 	reqBody, _ := ioutil.ReadAll(r.Body)
 
@@ -67,7 +68,12 @@ func handlePostMessage(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal(reqBody, &whisper)
 	log.Println("From:", whisper.Sender, "Message:", whisper.Message)
 
-	gossip = append(gossip, whisper)
+	gossip = append(gossip, whisper) // Log whisper
+	noGossips := len(gossip)
+	bufferSize := 50
+	if noGossips > bufferSize {
+		gossip = gossip[noGossips-bufferSize : noGossips]
+	}
 
 	if whisper.Sender == sender {
 		log.Println("Whisper came back")
@@ -91,6 +97,13 @@ func handleGetConfig(w http.ResponseWriter, r *http.Request) {
 
 func handleGetGossip(w http.ResponseWriter, r *http.Request) {
 	log.Println("HTTP/GET /gossip - Gossip Requested")
+
+	fmt.Fprintln(w, "Latest Gossip")
+	fmt.Fprintln(w, "----------------------------------------------------------------------------------------------------")
+	for i, g := range gossip {
+		fmt.Fprintf(w, "%d) \"%s\" -%s\n", i, g.Message, g.Sender)
+	}
+	fmt.Fprintln(w)
 
 	json.NewEncoder(w).Encode(gossip)
 }
@@ -128,12 +141,14 @@ func sendWhisper(w Whisper) {
 }
 
 func trollMessage(s string) string {
-	v := rand.Intn(5)
+	v := rand.Intn(10)
 	log.Println("Random value", v)
 
 	if v == 0 {
 		return s + ", except for when alone in a dark room"
 	} else if v == 1 {
+		return s + ", cause I like it so"
+	} else if v == 2 {
 		return reverseWords(s)
 	}
 
