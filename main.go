@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -12,10 +13,11 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const version = "0.0.5"
+const version = "0.0.6"
 
 var sender string
 var forwardAddress string
+var gossip []Whisper
 
 func main() {
 	flag.StringVar(&sender, "sender", "N/A", "Set the current sender")
@@ -32,6 +34,8 @@ func main() {
 		forwardAddress = val
 	}
 
+	gossip = []Whisper{}
+
 	log.Println("Whisper Service (version:", version, ") - Started")
 	log.Println("Sender:", sender)
 	log.Println("Forward Address:", forwardAddress)
@@ -42,9 +46,9 @@ func main() {
 func setupAndHandleRequests() {
 	router := mux.NewRouter().StrictSlash(true)
 
-	router.HandleFunc("/posts", PostsHandler)
 	router.HandleFunc("/config", handleGetConfig)
-	router.HandleFunc("/", handlePostMessage).Methods("POST")
+	router.HandleFunc("/whisper", handlePostMessage).Methods("POST")
+	router.HandleFunc("/gossip", handleGetGossip)
 
 	log.Println("Listening to requests on port 5051")
 	log.Fatal(http.ListenAndServe(":5051", router))
@@ -58,6 +62,14 @@ func handlePostMessage(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal(reqBody, &whisper)
 	log.Println("From:", whisper.Sender, "Message:", whisper.Message)
 
+	gossip = append(gossip, whisper)
+
+	if whisper.Sender == sender {
+		log.Println("Whisper came back")
+
+	} else {
+		sendWhisper(whisper)
+	}
 	fmt.Fprintf(w, "Thanks for your message\n")
 	fmt.Fprintf(w, "%+v", string(reqBody))
 }
@@ -71,30 +83,29 @@ func handleGetConfig(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Forward Address :", forwardAddress)
 }
 
-// To be removed
-type Post struct {
-	Title  string `json:"Rubrik"`
-	Author string `json:"Author"`
-	Text   string `json:"Text"`
+func handleGetGossip(w http.ResponseWriter, r *http.Request) {
+	log.Println("Gossig Requested")
+
+	json.NewEncoder(w).Encode(gossip)
+}
+
+func sendWhisper(w Whisper) {
+	log.Println("Forwarding whisper to", forwardAddress)
+
+	jsonReq, _ := json.Marshal(w)
+	resp, err := http.Post(forwardAddress, "application/json; charset=utf-8", bytes.NewBuffer(jsonReq))
+	if err != nil {
+		log.Fatalln("Unable to forward whisper to", forwardAddress)
+		log.Fatalln(err)
+	}
+
+	defer resp.Body.Close()
 }
 
 // Whisper describes the messages being received or sent
 type Whisper struct {
 	Sender  string `json:"sender"`
 	Message string `json:"message"`
-}
-
-// To be removed
-func PostsHandler(w http.ResponseWriter, r *http.Request) {
-
-	posts := []Post{
-		Post{"Post one", "Paige", "This is first post."},
-		Post{"Post two", "Rachel", "This is second post."},
-		Post{"Post three", "Olivia", "This is another post."},
-		Post{"Post four", "Kristofer", "This is the last post."},
-	}
-
-	json.NewEncoder(w).Encode(posts)
 }
 
 /*
