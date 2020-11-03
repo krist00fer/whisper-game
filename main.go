@@ -7,13 +7,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 )
 
-const version = "0.1.0"
+const version = "0.1.1"
 
 var sender string
 var forwardAddress string
@@ -34,6 +37,7 @@ func main() {
 		forwardAddress = val
 	}
 
+	rand.Seed(time.Now().UnixNano())
 	gossip = []Whisper{}
 
 	log.Println("Whisper Service (version:", version, ") - Started")
@@ -69,6 +73,7 @@ func handlePostMessage(w http.ResponseWriter, r *http.Request) {
 		log.Println("Whisper came back")
 
 	} else {
+		whisper.Message = trollMessage(whisper.Message)
 		sendWhisper(whisper)
 	}
 	fmt.Fprintf(w, "Thanks for your message\n")
@@ -109,7 +114,8 @@ func handlePostGossip(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendWhisper(w Whisper) {
-	log.Println("Sending whisper to", forwardAddress)
+	log.Println("Sending whisper to:", forwardAddress)
+	log.Println("Message           :", w.Message)
 
 	jsonReq, _ := json.Marshal(w)
 	resp, err := http.Post(forwardAddress, "application/json; charset=utf-8", bytes.NewBuffer(jsonReq))
@@ -121,15 +127,29 @@ func sendWhisper(w Whisper) {
 	defer resp.Body.Close()
 }
 
+func trollMessage(s string) string {
+	v := rand.Intn(5)
+	log.Println("Random value", v)
+
+	if v == 0 {
+		return s + ", except for when alone in a dark room"
+	} else if v == 1 {
+		return reverseWords(s)
+	}
+
+	return s
+}
+
+func reverseWords(s string) string {
+	words := strings.Fields(s)
+	for i, j := 0, len(words)-1; i < j; i, j = i+1, j-1 {
+		words[i], words[j] = words[j], words[i]
+	}
+	return strings.Join(words, " ")
+}
+
 // Whisper describes the messages being received or sent
 type Whisper struct {
 	Sender  string `json:"sender"`
 	Message string `json:"message"`
 }
-
-/*
-	{
-		"sender":"olivia",
-		"message":"Fun message"
-	}
-*/
